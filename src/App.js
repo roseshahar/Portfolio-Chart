@@ -3,6 +3,7 @@ import "./App.css";
 import { Line } from "react-chartjs-2";
 import { Chart as ChartJS, CategoryScale } from "chart.js/auto";
 import moment from "moment";
+import Button from "react-bootstrap/Button";
 
 ChartJS.register(CategoryScale);
 
@@ -52,8 +53,10 @@ class App extends React.Component {
     data_ready: false,
     etf_data: {},
     graph_data: {},
-    labels: []
+    labels: [],
+    historic_month_count: 1
   };
+  chart = React.createRef();
 
   async componentDidMount() {
     await this.requestData();
@@ -62,21 +65,24 @@ class App extends React.Component {
   async fetch_etf(etf) {
     const today = moment(Date.now()).format("YYYY-MM-DD");
 
-    const response = await fetch(`https://www.funder.co.il/wsStock.asmx/GetEtfTickerm?callback=&id=${etf}&startDate=2023-12-08&endDate=${today}`);
+    let start_date = new Date();
+    start_date.setMonth(start_date.getMonth() - this.state.historic_month_count);
+    start_date = moment(start_date).format("YYYY-MM-DD");
+    console.log("start_date", start_date, this.state.historic_month_count);
+
+    const response = await fetch(`https://www.funder.co.il/wsStock.asmx/GetEtfTickerm?callback=&id=${etf}&startDate=${start_date}&endDate=${today}`);
     const etf_data = await response.json();
 
     this.state.etf_data[etf] = etf_data["x"];
-    this.state.labels = etf_data["x"].map(item => item.c);
   }
 
   requestData = async () => {
     let etfs = [1159094, 1159250, 1146646];
     await Promise.all(etfs.map(etf => this.fetch_etf(etf)));
 
-    console.log(this.state.etf_data);
-    console.log(this.state.labels);
 
     let data_sets = [];
+    let labels = [];
 
     for (let key in this.state.etf_data) {
       let curr_data = this.state.etf_data[key];
@@ -89,15 +95,19 @@ class App extends React.Component {
           data: curr_data.map(item => (item.p / base) - 1)
         }
       );
+      labels = curr_data.map(item => item.c);
     }
+
+    console.log(this.state.etf_data);
+    console.log(labels);
 
     this.setState(
       {
-        data_ready: true,
         graph_data: {
-          labels: this.state.labels,
+          labels: labels,
           datasets: data_sets
-        }
+        },
+        data_ready: true
       }
     );
   };
@@ -110,8 +120,28 @@ class App extends React.Component {
     return (
       <div className="App">
         <h1>hello</h1>
+        <div>
+          <Button variant="secondary"
+                  onClick={() => {
+                    this.setState({ historic_month_count: 1, data_ready: false });
+                    this.requestData().then(r => {
+                    });
+                  }}>1 Month</Button>
+          <Button variant="secondary"
+                  onClick={() => {
+                    this.setState({ historic_month_count: 3, data_ready: false });
+                    this.requestData().then(r => {
+                    });
+                  }}>3 Months</Button>
+          <Button variant="secondary"
+                  onClick={() => {
+                    this.setState({ historic_month_count: 6, data_ready: false });
+                    this.requestData().then(r => {
+                    });
+                  }}>6 Months</Button>
+        </div>
         <header className="App-header">
-          <Line options={options} data={this.state.graph_data} />;
+          <Line ref={this.chart} options={options} data={this.state.graph_data} redraw={true} />;
         </header>
       </div>
     );
