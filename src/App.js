@@ -17,7 +17,7 @@ export const options = {
   plugins: {
     title: {
       display: true,
-      text: "Chart.js Line Chart - Multi Axis"
+      text: "ETF Comparison (Percentages)"
     },
     tooltip: {
       callbacks: {
@@ -56,7 +56,6 @@ function App() {
 
 
   async function fetch_etf(etf) {
-    console.log("historicMonthCount", historicMonthCount);
     const today = moment(Date.now()).format("YYYY-MM-DD");
 
     let start_date = new Date();
@@ -66,7 +65,19 @@ function App() {
     const response = await fetch(`https://www.funder.co.il/wsStock.asmx/GetEtfTickerm?callback=&id=${etf}&startDate=${start_date}&endDate=${today}`);
     const etf_data = await response.json();
 
-    etfData[etf] = etf_data["x"];
+    const response_2 = await fetch(`https://www.funder.co.il/seco/${etf}/s`);
+    const name_data = await response_2.text();
+
+    const reg = /<h1 class="chartTopTitle"><strong>(.+)<\/strong><\/h1>/;
+    const name_match = name_data.match(reg);
+
+    let name = etf;
+
+    if (name_match.length >= 2) {
+      name = name_match[1] + ` (${name})`
+    }
+
+    etfData[name] = etf_data["x"];
   }
 
   let requestData = async () => {
@@ -95,7 +106,6 @@ function App() {
       labels: labels,
       datasets: data_sets
     });
-    console.log("requestData", graphData.labels);
     setDataReady(true);
   };
 
@@ -121,7 +131,7 @@ function App() {
   return (
     <div className="App">
       <React.StrictMode>
-        <h1>hello</h1>
+        <h1>ETF Compare</h1>
         <div>
           <Button variant="secondary"
                   value={1}
