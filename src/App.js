@@ -4,6 +4,7 @@ import { Line } from "react-chartjs-2";
 import { CategoryScale, Chart as ChartJS } from "chart.js/auto";
 import moment from "moment";
 import Button from "react-bootstrap/Button";
+import Form from "react-bootstrap/Form";
 
 ChartJS.register(CategoryScale);
 
@@ -53,6 +54,9 @@ function App() {
   const [etfData] = useState({});
   const [graphData, setGraphData] = useState({});
   const [historicMonthCount, setHistoricMonthCount] = useState(1);
+  const [userEtfList, setUserEtfList] = useState([1159250]);
+
+  const etfJsonRef = React.createRef();
 
 
   async function fetch_etf(etf) {
@@ -74,15 +78,14 @@ function App() {
     let name = etf;
 
     if (name_match.length >= 2) {
-      name = name_match[1] + ` (${name})`
+      name = name_match[1] + ` (${name})`;
     }
 
     etfData[name] = etf_data["x"];
   }
 
   let requestData = async () => {
-    let etfs = [1159094, 1159250, 1146646];
-    await Promise.all(etfs.map(etf => fetch_etf(etf)));
+    await Promise.all(userEtfList.map(etf => fetch_etf(etf)));
 
 
     let data_sets = [];
@@ -110,13 +113,30 @@ function App() {
   };
 
   useEffect(() => {
-    requestData().then();
+    try {
+      const etfs = JSON.parse(localStorage.getItem("userEtfList"));
+      if (etfs) {
+        setUserEtfList(etfs);
+      }
+    } catch (e) {
+      alert(e);
+    }
   }, []);
 
   useEffect(() => {
     // state set is async, we need the hook to handel change in `handleMonthButtons`
     requestData().then();
-  }, [historicMonthCount]);
+  }, [historicMonthCount, userEtfList]);
+
+  function handleUserEtfInputChange() {
+    try {
+      const data = JSON.parse(etfJsonRef.current.value);
+      setUserEtfList(data);
+      localStorage.setItem("userEtfList", JSON.stringify(data));
+    } catch (e) {
+      alert(e);
+    }
+  }
 
   function handleMonthButtons(event) {
     let month_value = event.target.value;
@@ -151,6 +171,9 @@ function App() {
         </div>
         <header className="App-header">
           <Line options={options} data={graphData} height={90} />;
+          <Form.Control ref={etfJsonRef} type="text" as="textarea" rows={15} placeholder="JSON list of ETF ids"
+                        style={{ width: "80%", marginTop: "10px" }} onBlur={handleUserEtfInputChange}
+                        defaultValue={JSON.stringify(userEtfList)} />
         </header>
       </React.StrictMode>,
     </div>
