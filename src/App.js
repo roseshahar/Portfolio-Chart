@@ -150,7 +150,7 @@ function App() {
                   }}>6 Months</Button>
         </div>
         <header className="App-header">
-          <Line options={options} data={graphData} />;
+          <Line options={options} data={graphData} height={90} />;
         </header>
       </React.StrictMode>,
     </div>
