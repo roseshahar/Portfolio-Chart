@@ -66,13 +66,25 @@ function App() {
     start_date.setMonth(start_date.getMonth() - historicMonthCount);
     start_date = moment(start_date).format("YYYY-MM-DD");
 
-    const response = await fetch(`https://www.funder.co.il/wsStock.asmx/GetEtfTickerm?callback=&id=${etf}&startDate=${start_date}&endDate=${today}`);
-    const etf_data = await response.json();
+    let response = await fetch(`https://www.funder.co.il/wsStock.asmx/GetEtfTickerm?callback=&id=${etf}&startDate=${start_date}&endDate=${today}`);
+    let etf_data;
+    let etf_name_path;
 
-    const response_2 = await fetch(`https://www.funder.co.il/seco/${etf}/s`);
+    try {
+      etf_data = await response.json();
+      etf_name_path = `seco/${etf}/s`;
+    } catch (e) {
+      let response = await fetch(`https://www.funder.co.il/wsfund.asmx/GetFundTickerm?callback=&id=${etf}&startDate=${start_date}&endDate=${today}`);
+      console.log(etf, etf_data)
+
+      etf_data = await response.json();
+      etf_name_path = `fundo/${etf}`;
+    }
+
+    const response_2 = await fetch(`https://www.funder.co.il/${etf_name_path}`);
     const name_data = await response_2.text();
 
-    const reg = /<h1 class="chartTopTitle"><strong>(.+)<\/strong><\/h1>/;
+    const reg = /<title>[\s]*(.+)[\s]*<\/title>/;
     const name_match = name_data.match(reg);
 
     let name = etf;
